@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PromptVault - Quản lý Prompts AI</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+  
+  :root {
+    --bg-primary: #0a0e1a;
+    --bg-secondary: #131826;
+    --bg-tertiary: #1a2035;
+    --border: #2a3148;
+    --border-light: #3a4260;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --accent: #f97316;
+    --accent-hover: #fb923c;
+    --accent-glow: rgba(249, 115, 22, 0.3);
+    --success: #10b981;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --info: #3b82f6;
+    --purple: #a855f7;
+    --pink: #ec4899;
+    --cyan: #06b6d4;
+  }
+  
+  body.light {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f1f5f9;
+    --border: #e2e8f0;
+    --border-light: #cbd5e1;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --accent: #ea580c;
+    --accent-hover: #f97316;
+    --accent-glow: rgba(234, 88, 12, 0.2);
+  }
+  
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background 0.3s, color 0.3s;
+  }
+  
+  .app { display: flex; min-height: 100vh; }
+  
+  /* SIDEBAR */
+  .sidebar {
+    width: 280px;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    padding: 20px 0;
+    overflow-y: auto;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    flex-shrink: 0;
+    transition: all 0.3s;
+  }
+  
+  .logo {
+    padding: 0 20px 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-icon {
+    width: 42px; height: 42px;
+    background: linear-gradient(135deg, #f97316, #ec4899);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 4px 20px var(--accent-glow);
+  }
+  .logo-text { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+  .logo-text span { color: var(--accent); }
+  
+  .sidebar-section { padding: 0 12px; margin-bottom: 20px; }
+  .section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    padding: 0 10px 10px;
+    font-weight: 700;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .section-title button {
+    background: transparent; border: none; color: var(--text-muted);
+    cursor: pointer; font-size: 16px; width: 24px; height: 24px;
+    border-radius: 6px; display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; font-weight: 700;
+  }
+  .section-title button:hover { background: var(--bg-tertiary); color: var(--accent); }
+  
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 3px;
+    color: var(--text-primary);
+    font-size: 14px;
+    position: relative;
+  }
+  .nav-item:hover { background: var(--bg-tertiary); }
+  .nav-item.active {
+    background: linear-gradient(90deg, var(--accent-glow), transparent);
+    color: var(--accent);
+    font-weight: 600;
+    border-left: 3px solid var(--accent);
+    padding-left: 9px;
+  }
+  .nav-item .count {
+    margin-left: auto;
+    background: var(--bg-tertiary);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+  .nav-item.active .count { background: var(--accent); color: white; }
+  .nav-item .folder-color {
+    width: 10px; height: 10px; border-radius: 3px;
+  }
+  .nav-item .actions {
+    margin-left: auto; display: none; gap: 4px;
+  }
+  .nav-item:hover .actions { display: flex; }
+  .nav-item:hover .count { display: none; }
+  .nav-item .actions button {
+    background: transparent; border: none; color: var(--text-muted);
+    cursor: pointer; width: 24px; height: 24px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+  }
+  .nav-item .actions button:hover { background: var(--bg-primary); color: var(--text-primary); }
+  
+  /* MAIN */
+  .main { flex: 1; padding: 25px 35px; overflow-y: auto; min-width: 0; }
+  
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 25px; gap: 15px; flex-wrap: wrap;
+  }
+  
+  .search-box {
+    flex: 1; min-width: 250px; max-width: 500px;
+    position: relative;
+  }
+  .search-box input {
+    width: 100%; padding: 12px 15px 12px 42px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s;
+  }
+  .search-box input::placeholder { color: var(--text-muted); }
+  .search-box input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+  .search-box::before {
+    content: "🔍"; position: absolute; left: 14px; top: 50%;
+    transform: translateY(-50%); font-size: 15px;
+  }
+  
+  .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  
+  .btn {
+    padding: 10px 18px;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: all 0.2s;
+  }
+  .btn:hover { background: var(--bg-tertiary); border-color: var(--border-light); transform: translateY(-1px); }
+  .btn-primary {
+    background: linear-gradient(135deg, #f97316, #fb923c);
+    color: white; border: none;
+    box-shadow: 0 4px 15px var(--accent-glow);
+  }
+  .btn-primary:hover { box-shadow: 0 6px 25px var(--accent-glow); background: linear-gradient(135deg, #fb923c, #fdba74); }
+  .btn-danger { background: var(--danger); color: white; border: none; }
+  .btn-ghost { background: transparent; }
+  
+  .current-view {
+    margin-bottom: 20px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .current-view h2 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+  .current-view .view-count {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+  
+  /* PROMPTS GRID */
+  .prompts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 18px;
+  }
+  
+  .prompt-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .prompt-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #f97316, #ec4899, #a855f7);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .prompt-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  }
+  .prompt-card:hover::before { opacity: 1; }
+  
+  .prompt-header {
+    display: flex; align-items: flex-start; gap: 10px;
+    margin-bottom: 10px;
+  }
+  .prompt-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--accent), var(--pink));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    color: white;
+    font-weight: 700;
+  }
+  .prompt-title-wrap { flex: 1; min-width: 0; }
+  .prompt-title {
+    font-size: 15px; font-weight: 700;
+    margin-bottom: 4px;
+    overflow: hidden; text-overflow: ellipsis;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    line-height: 1.3;
+  }
+  .prompt-meta {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    font-size: 11px; color: var(--text-muted);
+  }
+  .model-badge {
+    background: var(--bg-tertiary);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .model-badge.gpt { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+  .model-badge.claude { background: rgba(168, 85, 247, 0.15); color: var(--purple); }
+  .model-badge.gemini { background: rgba(59, 130, 246, 0.15); color: var(--info); }
+  .model-badge.midjourney { background: rgba(236, 72, 153, 0.15); color: var(--pink); }
+  .model-badge.other { background: var(--bg-tertiary); color: var(--text-secondary); }
+  
+  .prompt-content {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 12px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    max-height: 120px;
+    overflow: hidden;
+    position: relative;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .prompt-content::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 30px;
+    background: linear-gradient(transparent, var(--bg-primary));
+    pointer-events: none;
+  }
+  .prompt-content .var {
+    color: var(--accent);
+    font-weight: 700;
+    background: var(--accent-glow);
+    padding: 0 4px;
+    border-radius: 4px;
+  }
+  
+  .prompt-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+  .tag-chip {
+    background: var(--bg-tertiary);
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+  
+  .prompt-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    margin-top: auto;
+  }
+  .prompt-stats {
+    display: flex; gap: 12px;
+    font-size: 11px; color: var(--text-muted);
+  }
+  .prompt-stats span { display: flex; align-items: center; gap: 4px; }
+  .prompt-actions { display: flex; gap: 4px; }
+  .prompt-actions button {
+    background: var(--bg-tertiary); border: 1px solid var(--border);
+    color: var(--text-secondary); cursor: pointer;
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; transition: all 0.2s;
+  }
+  .prompt-actions button:hover { background: var(--bg-primary); color: var(--text-primary); border-color: var(--border-light); }
+  .prompt-actions button.copy-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+  .prompt-actions button.copy-btn.copied { background: var(--success); color: white; border-color: var(--success); }
+  .prompt-actions button.del:hover { color: var(--danger); border-color: var(--danger); }
+  
+  .empty-state {
+    text-align: center; padding: 80px 20px;
+    color: var(--text-secondary);
+  }
+  .empty-state .icon { font-size: 70px; margin-bottom: 15px; opacity: 0.5; }
+  .empty-state h3 { margin-bottom: 8px; color: var(--text-primary); font-size: 20px; }
+  .empty-state p { color: var(--text-muted); }
+  
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px;
+    width: 100%; max-width: 650px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+  }
+  .modal h3 { margin-bottom: 20px; font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label {
+    display: block; margin-bottom: 6px;
+    font-size: 13px; font-weight: 700;
+    color: var(--text-secondary);
+  }
+  .form-group .hint {
+    font-size: 11px; color: var(--text-muted);
+    margin-top: 4px; font-weight: 400;
+  }
+  .form-group input, .form-group textarea, .form-group select {
+    width: 100%;
+    padding: 11px 14px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 14px;
+    outline: none;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .form-group textarea {
+    resize: vertical; min-height: 180px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 13px; line-height: 1.6;
+  }
+  .form-group select option { background: var(--bg-secondary); color: var(--text-primary); }
+  
+  .char-count {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--text-muted);
+    margin-top: 6px;
+  }
+  .char-count .vars-detected { color: var(--accent); font-weight: 600; }
+  
+  .model-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
+  }
+  .model-option {
+    padding: 10px;
+    background: var(--bg-primary);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    transition: all 0.2s;
+  }
+  .model-option:hover { border-color: var(--border-light); }
+  .model-option.selected {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+    color: var(--accent);
+  }
+  
+  .color-picker {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .color-option {
+    width: 32px; height: 32px; border-radius: 8px;
+    cursor: pointer; border: 3px solid transparent;
+    transition: all 0.2s;
+  }
+  .color-option.selected { border-color: var(--text-primary); transform: scale(1.15); }
+  
+  .modal-actions {
+    display: flex; justify-content: flex-end; gap: 10px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  
+  /* DETAIL MODAL */
+  .detail-content {
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+  }
+  .detail-content .var {
+    color: var(--accent);
+    font-weight: 700;
+    background: var(--accent-glow);
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+  
+  .var-fill-section {
+    background: var(--bg-tertiary);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 15px;
+  }
+  .var-fill-section h4 {
+    font-size: 13px; margin-bottom: 10px;
+    color: var(--text-secondary);
+  }
+  .var-fill-row {
+    display: flex; gap: 8px; margin-bottom: 8px; align-items: center;
+  }
+  .var-fill-row label {
+    min-width: 120px; font-size: 12px; color: var(--accent);
+    font-family: 'Consolas', monospace; font-weight: 700;
+  }
+  .var-fill-row input {
+    flex: 1; padding: 8px 12px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 13px;
+    outline: none;
+  }
+  .var-fill-row input:focus { border-color: var(--accent); }
+  
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 30px; right: 30px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    padding: 14px 20px;
+    border-radius: 12px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    transform: translateX(400px);
+    transition: transform 0.3s;
+    z-index: 200;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .toast.show { transform: translateX(0); }
+  .toast.success { border-left: 4px solid var(--success); }
+  .toast.error { border-left: 4px solid var(--danger); }
+  .toast.info { border-left: 4px solid var(--info); }
+  
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .sidebar {
+      position: fixed; left: -280px; z-index: 50;
+      transition: left 0.3s;
+    }
+    .sidebar.open { left: 0; }
+    .main { padding: 15px; }
+    .menu-toggle { display: flex !important; }
+  }
+  .menu-toggle {
+    display: none;
+    width: 40px; height: 40px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    align-items: center; justify-content: center;
+    cursor: pointer; font-size: 20px;
+  }
+  
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-light); }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <div class="logo-text">Prompt<span>Vault</span></div>
+    </div>
+    
+    <div class="sidebar-section">
+      <div class="nav-item active" data-view="all" onclick="setView('all')">
+        <span>🏠</span> <span>Tất cả</span>
+        <span class="count" id="count-all">0</span>
+      </div>
+      <div class="nav-item" data-view="favorite" onclick="setView('favorite')">
+        <span>⭐</span> <span>Yêu thích</span>
+        <span class="count" id="count-fav">0</span>
+      </div>
+      <div class="nav-item" data-view="recent" onclick="setView('recent')">
+        <span>🕐</span> <span>Gần đây</span>
+        <span class="count" id="count-recent">0</span>
+      </div>
+    </div>
+    
+    <div class="sidebar-section">
+      <div class="section-title">
+        <span>📁 Thư mục</span>
+        <button onclick="openFolderModal()" title="Thêm thư mục">+</button>
+      </div>
+      <div id="folder-list"></div>
+    </div>
+    
+    <div class="sidebar-section">
+      <div class="section-title">
+        <span>🏷️ Thẻ tag</span>
+        <button onclick="openTagModal()" title="Thêm tag">+</button>
+      </div>
+      <div id="tag-list"></div>
+    </div>
+    
+    <div class="sidebar-section">
+      <div class="section-title"><span>🤖 Theo Model</span></div>
+      <div id="model-list"></div>
+    </div>
+  </aside>
+  
+  <!-- MAIN -->
+  <main class="main">
+    <div class="header">
+      <div class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</div>
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="Tìm kiếm prompt, nội dung, tag..." oninput="renderPrompts()">
+      </div>
+      <div class="header-actions">
+        <button class="btn" onclick="toggleTheme()" title="Đổi theme">🌓</button>
+        <button class="btn" onclick="exportData()" title="Xuất JSON">📤 Xuất</button>
+        <button class="btn" onclick="document.getElementById('import-file').click()" title="Nhập JSON">📥 Nhập</button>
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+        <button class="btn btn-primary" onclick="openPromptModal()">+ Thêm Prompt</button>
+      </div>
+    </div>
+    
+    <div class="current-view">
+      <h2 id="view-title">Tất cả Prompts</h2>
+      <span class="view-count" id="view-count">0 mục</span>
+    </div>
+    
+    <div id="prompts-container"></div>
+  </main>
+</div>
+
+<!-- MODAL PROMPT -->
+<div class="modal-overlay" id="prompt-modal">
+  <div class="modal">
+    <h3 id="prompt-modal-title">✨ Thêm Prompt Mới</h3>
+    <div class="form-group">
+      <label>Tiêu đề *</label>
+      <input type="text" id="prompt-title" placeholder="VD: Tóm tắt bài báo khoa học">
+    </div>
+    <div class="form-group">
+      <label>Nội dung Prompt *</label>
+      <textarea id="prompt-content" placeholder="Viết prompt của bạn ở đây...&#10;&#10;Sử dụng {{biến}} để đánh dấu placeholder, VD:&#10;Hãy đóng vai {{role}} và giúp tôi {{task}}" oninput="updateCharCount()"></textarea>
+      <div class="char-count">
+        <span id="char-count">0 ký tự • ~0 tokens</span>
+        <span class="vars-detected" id="vars-detected"></span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Mô tả (tùy chọn)</label>
+      <input type="text" id="prompt-desc" placeholder="Mô tả ngắn về prompt này...">
+    </div>
+    <div class="form-group">
+      <label>Model AI phù hợp</label>
+      <div class="model-grid" id="model-grid"></div>
+    </div>
+    <div class="form-group">
+      <label>Thư mục</label>
+      <select id="prompt-folder"><option value="">-- Không phân loại --</option></select>
+    </div>
+    <div class="form-group">
+      <label>Tags (phân cách bằng dấu phẩy)</label>
+      <input type="text" id="prompt-tags" placeholder="writing, coding, creative">
+    </div>
+    <div class="form-group">
+      <label><input type="checkbox" id="prompt-fav"> Đánh dấu yêu thích</label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('prompt-modal')">Hủy</button>
+      <button class="btn btn-primary" onclick="savePrompt()">💾 Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETAIL -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal">
+    <h3 id="detail-title">📝 Chi tiết Prompt</h3>
+    <div id="detail-meta" style="margin-bottom: 15px; display: flex; gap: 8px; flex-wrap: wrap;"></div>
+    <div class="detail-content" id="detail-content"></div>
+    <div class="var-fill-section" id="var-fill-section" style="display:none">
+      <h4>🔧 Điền giá trị cho các biến:</h4>
+      <div id="var-fill-list"></div>
+      <button class="btn btn-primary" style="margin-top: 10px; width: 100%;" onclick="copyFilledPrompt()">📋 Copy bản đã điền</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('detail-modal')">Đóng</button>
+      <button class="btn btn-primary" onclick="copyRawPrompt()">📋 Copy Raw</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FOLDER -->
+<div class="modal-overlay" id="folder-modal">
+  <div class="modal">
+    <h3 id="folder-modal-title">📁 Thêm Thư Mục</h3>
+    <div class="form-group">
+      <label>Tên thư mục *</label>
+      <input type="text" id="folder-name" placeholder="VD: Viết content, Coding, Research...">
+    </div>
+    <div class="form-group">
+      <label>Màu sắc</label>
+      <div class="color-picker" id="folder-colors"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('folder-modal')">Hủy</button>
+      <button class="btn btn-primary" onclick="saveFolder()">💾 Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TAG -->
+<div class="modal-overlay" id="tag-modal">
+  <div class="modal">
+    <h3>🏷️ Thêm Tag Mới</h3>
+    <div class="form-group">
+      <label>Tên tag *</label>
+      <input type="text" id="tag-name" placeholder="VD: writing, coding, research">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('tag-modal')">Hủy</button>
+      <button class="btn btn-primary" onclick="saveTag()">💾 Lưu</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ STATE ============
+let state = {
+  prompts: [],
+  folders: [],
+  tags: [],
+  currentView: { type: 'all', id: null },
+  editingPromptId: null,
+  editingFolderId: null,
+  selectedFolderColor: '#f97316',
+  selectedModel: 'GPT-4',
+  currentDetailId: null,
+  filledValues: {}
+};
+
+const FOLDER_COLORS = ['#f97316','#ec4899','#a855f7','#3b82f6','#06b6d4','#10b981','#f59e0b','#ef4444','#64748b'];
+const MODELS = [
+  { name: 'GPT-4', class: 'gpt', icon: '🟢' },
+  { name: 'Claude', class: 'claude', icon: '🟣' },
+  { name: 'Gemini', class: 'gemini', icon: '🔵' },
+  { name: 'Midjourney', class: 'midjourney', icon: '🎨' },
+  { name: 'DALL-E', class: 'other', icon: '🖼️' },
+  { name: 'LLaMA', class: 'other', icon: '🦙' },
+  { name: 'Khác', class: 'other', icon: '🤖' }
+];
+
+// ============ STORAGE ============
+function save() {
+  localStorage.setItem('promptvault_data', JSON.stringify({
+    prompts: state.prompts, folders: state.folders, tags: state.tags
+  }));
+}
+function load() {
+  const data = localStorage.getItem('promptvault_data');
+  if (data) {
+    const parsed = JSON.parse(data);
+    state.prompts = parsed.prompts || [];
+    state.folders = parsed.folders || [];
+    state.tags = parsed.tags || [];
+  }
+  if (state.prompts.length === 0 && state.folders.length === 0) {
+    seedSampleData();
+  }
+}
+function seedSampleData() {
+  state.folders = [
+    { id: 'f1', name: 'Viết Content', color: '#ec4899' },
+    { id: 'f2', name: 'Coding', color: '#10b981' },
+    { id: 'f3', name: 'Research', color: '#3b82f6' },
+    { id: 'f4', name: 'Hình ảnh', color: '#a855f7' },
+    { id: 'f5', name: 'Dịch thuật', color: '#f59e0b' }
+  ];
+  state.tags = [
+    { id: 't1', name: 'writing' },
+    { id: 't2', name: 'coding' },
+    { id: 't3', name: 'creative' },
+    { id: 't4', name: 'analysis' },
+    { id: 't5', name: 'productivity' }
+  ];
+  state.prompts = [
+    {
+      id: 'p1',
+      title: 'Tóm tắt bài báo khoa học',
+      content: 'Bạn là một nhà nghiên cứu chuyên gia trong lĩnh vực {{field}}. Hãy đọc bài báo sau và tóm tắt theo cấu trúc:\n\n1. Mục tiêu nghiên cứu (1-2 câu)\n2. Phương pháp chính\n3. Kết quả quan trọng nhất\n4. Đóng góp cho lĩnh vực\n5. Hạn chế và hướng nghiên cứu tiếp\n\nBài báo:\n{{article}}',
+      description: 'Tóm tắt bài báo khoa học theo cấu trúc chuẩn',
+      folderId: 'f3',
+      tags: ['analysis', 'research'],
+      model: 'Claude',
+      favorite: true,
+      createdAt: Date.now() - 86400000,
+      updatedAt: Date.now() - 86400000
+    },
+    {
+      id: 'p2',
+      title: 'Viết blog SEO chuẩn',
+      content: 'Viết một bài blog chuẩn SEO về chủ đề "{{topic}}" với các yêu cầu:\n\n- Độ dài: {{word_count}} từ\n- Giọng văn: {{tone}}\n- Đối tượng: {{audience}}\n- Bao gồm: H1, 3-5 H2, meta description (155 ký tự), 5 từ khóa chính\n- Mở đầu hấp dẫn, kết thúc có CTA\n- Sử dụng bullet points, số liệu cụ thể',
+      description: 'Template viết blog SEO chuyên nghiệp',
+      folderId: 'f1',
+      tags: ['writing', 'productivity'],
+      model: 'GPT-4',
+      favorite: true,
+      createdAt: Date.now() - 172800000,
+      updatedAt: Date.now() - 172800000
+    },
+    {
+      id: 'p3',
+      title: 'Review code Python',
+      content: 'Review đoạn code Python sau theo các tiêu chí:\n\n1. ✅ Correctness: Logic có đúng không?\n2. 🚀 Performance: Có tối ưu không? Độ phức tạp?\n3. 📖 Readability: Code có dễ đọc, đặt tên tốt?\n4. 🛡️ Security: Có lỗ hổng bảo mật?\n5. 🏗️ Architecture: Có tuân thủ SOLID?\n6. 💡 Suggestions: Đề xuất cải thiện cụ thể\n\n```python\n{{code}}\n```\n\nNgữ cảnh: {{context}}',
+      description: 'Review code Python toàn diện',
+      folderId: 'f2',
+      tags: ['coding'],
+      model: 'Claude',
+      favorite: false,
+      createdAt: Date.now() - 259200000,
+      updatedAt: Date.now() - 259200000
+    },
+    {
+      id: 'p4',
+      title: 'Midjourney - Portrait cinematic',
+      content: 'cinematic portrait of {{subject}}, {{setting}}, dramatic lighting, shot on 85mm lens, f/1.4, shallow depth of field, film grain, Kodak Portra 400, moody atmosphere, hyperrealistic, 8k, award winning photography --ar 2:3 --style raw --v 6',
+      description: 'Tạo ảnh chân dung điện ảnh với Midjourney',
+      folderId: 'f4',
+      tags: ['creative'],
+      model: 'Midjourney',
+      favorite: true,
+      createdAt: Date.now() - 345600000,
+      updatedAt: Date.now() - 345600000
+    },
+    {
+      id: 'p5',
+      title: 'Dịch Anh-Việt giữ ngữ cảnh',
+      content: 'Dịch đoạn văn sau từ {{source_lang}} sang {{target_lang}} với yêu cầu:\n\n- Giữ nguyên ngữ cảnh và sắc thái\n- Dùng từ ngữ tự nhiên, phù hợp văn hóa người bản xứ\n- Giữ nguyên các thuật ngữ chuyên ngành (có thể thêm giải thích trong ngoặc)\n- Không dịch word-by-word\n- Nếu có thành ngữ, tìm thành ngữ tương đương\n\nĐoạn văn:\n{{text}}',
+      description: 'Dịch thuật chất lượng cao giữ ngữ cảnh',
+      folderId: 'f5',
+      tags: ['writing', 'productivity'],
+      model: 'GPT-4',
+      favorite: false,
+      createdAt: Date.now() - 432000000,
+      updatedAt: Date.now() - 432000000
+    },
+    {
+      id: 'p6',
+      title: 'Giải thích concept phức tạp',
+      content: 'Giải thích khái niệm "{{concept}}" theo các cấp độ:\n\n🧒 5 tuổi: Dùng ví dụ đơn giản, hình ảnh quen thuộc\n👦 12 tuổi: Giải thích có logic cơ bản\n🎓 Sinh viên: Giải thích kỹ thuật vừa phải\n👨‍🔬 Chuyên gia: Đi sâu vào bản chất, công thức, ứng dụng\n\nVới mỗi cấp độ, đưa ra 1 ví dụ thực tế và 1 phép so sánh dễ hiểu.',
+      description: 'Giải thích mọi thứ ở 4 cấp độ hiểu',
+      folderId: 'f3',
+      tags: ['analysis', 'productivity'],
+      model: 'Claude',
+      favorite: true,
+      createdAt: Date.now() - 518400000,
+      updatedAt: Date.now() - 518400000
+    }
+  ];
+  save();
+}
+
+// ============ UTILS ============
+function uid() { return Date.now().toString(36) + Math.random().toString(36).substr(2, 5); }
+function formatDate(ts) {
+  const d = new Date(ts);
+  return d.toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+function toast(msg, type='success') {
+  const t = document.getElementById('toast');
+  const icon = type==='success'?'✅':type==='error'?'⚠️':'ℹ️';
+  t.innerHTML = icon + ' ' + msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function extractVars(text) {
+  const matches = text.match(/\{\{([^}]+)\}\}/g) || [];
+  return [...new Set(matches.map(m => m.replace(/\{\{|\}\}/g, '').trim()))];
+}
+function highlightVars(text) {
+  return escapeHtml(text).replace(/\{\{([^}]+)\}\}/g, '<span class="var">{{$1}}</span>');
+}
+function countTokens(text) {
+  // Ước tính: 1 token ≈ 4 ký tự (tiếng Anh) hoặc 2 ký tự (tiếng Việt)
+  const hasVietnamese = /[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(text);
+  const divisor = hasVietnamese ? 2.5 : 4;
+  return Math.ceil(text.length / divisor);
+}
+
+// ============ VIEWS ============
+function setView(type, id=null) {
+  state.currentView = { type, id };
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  if (type === 'all') document.querySelector('[data-view="all"]').classList.add('active');
+  else if (type === 'favorite') document.querySelector('[data-view="favorite"]').classList.add('active');
+  else if (type === 'recent') document.querySelector('[data-view="recent"]').classList.add('active');
+  else if (type === 'folder') {
+    const el = document.querySelector(`[data-folder-id="${id}"]`);
+    if (el) el.classList.add('active');
+  }
+  else if (type === 'tag') {
+    const el = document.querySelector(`[data-tag-id="${id}"]`);
+    if (el) el.classList.add('active');
+  }
+  else if (type === 'model') {
+    const el = document.querySelector(`[data-model-id="${id}"]`);
+    if (el) el.classList.add('active');
+  }
+  renderPrompts();
+  if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+}
+
+function getFilteredPrompts() {
+  const q = document.getElementById('search-input').value.toLowerCase().trim();
+  let list = [...state.prompts];
+  
+  if (state.currentView.type === 'favorite') list = list.filter(p => p.favorite);
+  else if (state.currentView.type === 'recent') list = list.sort((a,b) => b.updatedAt - a.updatedAt).slice(0, 20);
+  else if (state.currentView.type === 'folder') list = list.filter(p => p.folderId === state.currentView.id);
+  else if (state.currentView.type === 'tag') list = list.filter(p => (p.tags||[]).includes(state.currentView.id));
+  else if (state.currentView.type === 'model') list = list.filter(p => p.model === state.currentView.id);
+  
+  if (q) {
+    list = list.filter(p =>
+      (p.title||'').toLowerCase().includes(q) ||
+      (p.content||'').toLowerCase().includes(q) ||
+      (p.description||'').toLowerCase().includes(q) ||
+      (p.tags||[]).some(t => t.toLowerCase().includes(q))
+    );
+  }
+  return list.sort((a,b) => b.updatedAt - a.updatedAt);
+}
+
+function getViewTitle() {
+  if (state.currentView.type === 'all') return 'Tất cả Prompts';
+  if (state.currentView.type === 'favorite') return '⭐ Yêu thích';
+  if (state.currentView.type === 'recent') return '🕐 Gần đây';
+  if (state.currentView.type === 'folder') {
+    const f = state.folders.find(x => x.id === state.currentView.id);
+    return f ? `📁 ${f.name}` : 'Thư mục';
+  }
+  if (state.currentView.type === 'tag') return `🏷️ #${state.currentView.id}`;
+  if (state.currentView.type === 'model') return `🤖 ${state.currentView.id}`;
+  return '';
+}
+
+// ============ RENDER ============
+function renderSidebar() {
+  // Folders
+  const fl = document.getElementById('folder-list');
+  fl.innerHTML = state.folders.map(f => {
+    const count = state.prompts.filter(p => p.folderId === f.id).length;
+    return `
+      <div class="nav-item ${state.currentView.type==='folder'&&state.currentView.id===f.id?'active':''}" 
+           data-folder-id="${f.id}" onclick="setView('folder','${f.id}')">
+        <span class="folder-color" style="background:${f.color}"></span>
+        <span style="flex:1">${escapeHtml(f.name)}</span>
+        <span class="count">${count}</span>
+        <div class="actions">
+          <button onclick="event.stopPropagation();editFolder('${f.id}')" title="Sửa">✏️</button>
+          <button onclick="event.stopPropagation();deleteFolder('${f.id}')" title="Xóa">🗑️</button>
+        </div>
+      </div>`;
+  }).join('') || '<div style="padding:10px;color:var(--text-muted);font-size:12px">Chưa có thư mục</div>';
+  
+  // Tags
+  const tl = document.getElementById('tag-list');
+  const tagCounts = {};
+  state.prompts.forEach(p => (p.tags||[]).forEach(t => tagCounts[t] = (tagCounts[t]||0)+1));
+  tl.innerHTML = state.tags.map(t => {
+    const count = tagCounts[t.name] || 0;
+    return `
+      <div class="nav-item ${state.currentView.type==='tag'&&state.currentView.id===t.name?'active':''}"
+           data-tag-id="${t.name}" onclick="setView('tag','${t.name}')">
+        <span>#</span>
+        <span style="flex:1">${escapeHtml(t.name)}</span>
+        <span class="count">${count}</span>
+        <div class="actions">
+          <button onclick="event.stopPropagation();deleteTag('${t.id}')" title="Xóa">🗑️</button>
+        </div>
+      </div>`;
+  }).join('') || '<div style="padding:10px;color:var(--text-muted);font-size:12px">Chưa có tag</div>';
+  
+  // Models
+  const ml = document.getElementById('model-list');
+  const modelCounts = {};
+  state.prompts.forEach(p => { if (p.model) modelCounts[p.model] = (modelCounts[p.model]||0)+1; });
+  ml.innerHTML = MODELS.filter(m => modelCounts[m.name]).map(m => {
+    const count = modelCounts[m.name];
+    return `
+      <div class="nav-item ${state.currentView.type==='model'&&state.currentView.id===m.name?'active':''}"
+           data-model-id="${m.name}" onclick="setView('model','${m.name}')">
+        <span>${m.icon}</span>
+        <span style="flex:1">${m.name}</span>
+        <span class="count">${count}</span>
+      </div>`;
+  }).join('');
+  
+  // Counts
+  document.getElementById('count-all').textContent = state.prompts.length;
+  document.getElementById('count-fav').textContent = state.prompts.filter(p=>p.favorite).length;
+  document.getElementById('count-recent').textContent = Math.min(state.prompts.length, 20);
+}
+
+function renderPrompts() {
+  const list = getFilteredPrompts();
+  document.getElementById('view-title').textContent = getViewTitle();
+  document.getElementById('view-count').textContent = `${list.length} mục`;
+  
+  const container = document.getElementById('prompts-container');
+  if (list.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">📭</div>
+        <h3>Chưa có prompt nào</h3>
+        <p>Bấm "Thêm Prompt" để bắt đầu xây dựng thư viện AI của bạn!</p>
+      </div>`;
+    return;
+  }
+  
+  container.innerHTML = `<div class="prompts-grid">${list.map(renderPromptCard).join('')}</div>`;
+  renderSidebar();
+}
+
+function renderPromptCard(prompt) {
+  const folder = state.folders.find(f => f.id === prompt.folderId);
+  const model = MODELS.find(m => m.name === prompt.model) || MODELS[MODELS.length-1];
+  const vars = extractVars(prompt.content);
+  const favIcon = prompt.favorite ? '⭐' : '☆';
+  const initial = (prompt.title || 'P').charAt(0).toUpperCase();
+  
+  return `
+    <div class="prompt-card">
+      <div class="prompt-header">
+        <div class="prompt-icon" style="background: linear-gradient(135deg, ${folder?folder.color:'#f97316'}, ${folder?folder.color+'cc':'#ec4899'})">${initial}</div>
+        <div class="prompt-title-wrap">
+          <div class="prompt-title">${escapeHtml(prompt.title || 'Không có tiêu đề')}</div>
+          <div class="prompt-meta">
+            <span class="model-badge ${model.class}">${model.icon} ${prompt.model || 'Khác'}</span>
+            ${folder?`<span>• ${escapeHtml(folder.name)}</span>`:''}
+          </div>
+        </div>
+      </div>
+      <div class="prompt-content" onclick="openDetail('${prompt.id}')">${highlightVars(prompt.content || '')}</div>
+      ${(prompt.tags||[]).length ? `<div class="prompt-tags">${prompt.tags.map(t => `<span class="tag-chip">#${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+      <div class="prompt-footer">
+        <div class="prompt-stats">
+          <span>📝 ${prompt.content.length}</span>
+          <span>🔤 ~${countTokens(prompt.content)}</span>
+          ${vars.length ? `<span>🔧 ${vars.length} biến</span>` : ''}
+        </div>
+        <div class="prompt-actions">
+          <button class="copy-btn" onclick="copyPrompt('${prompt.id}', this)" title="Copy">📋</button>
+          <button onclick="openDetail('${prompt.id}')" title="Xem chi tiết">👁️</button>
+          <button onclick="toggleFavorite('${prompt.id}')" title="Yêu thích">${favIcon}</button>
+          <button onclick="editPrompt('${prompt.id}')" title="Sửa">✏️</button>
+          <button class="del" onclick="deletePrompt('${prompt.id}')" title="Xóa">🗑️</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ============ PROMPT CRUD ============
+function openPromptModal(id=null) {
+  state.editingPromptId = id;
+  const modal = document.getElementById('prompt-modal');
+  const title = document.getElementById('prompt-modal-title');
+  
+  // Fill folder options
+  const sel = document.getElementById('prompt-folder');
+  sel.innerHTML = '<option value="">-- Không phân loại --</option>' +
+    state.folders.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('');
+  
+  // Fill model grid
+  const mg = document.getElementById('model-grid');
+  mg.innerHTML = MODELS.map(m => 
+    `<div class="model-option" data-model="${m.name}" onclick="selectModel('${m.name}')">${m.icon} ${m.name}</div>`
+  ).join('');
+  
+  if (id) {
+    const p = state.prompts.find(x => x.id === id);
+    if (!p) return;
+    title.textContent = '✏️ Sửa Prompt';
+    document.getElementById('prompt-title').value = p.title;
+    document.getElementById('prompt-content').value = p.content;
+    document.getElementById('prompt-desc').value = p.description || '';
+    document.getElementById('prompt-folder').value = p.folderId || '';
+    document.getElementById('prompt-tags').value = (p.tags||[]).join(', ');
+    document.getElementById('prompt-fav').checked = !!p.favorite;
+    state.selectedModel = p.model || 'GPT-4';
+  } else {
+    title.textContent = '✨ Thêm Prompt Mới';
+    document.getElementById('prompt-title').value = '';
+    document.getElementById('prompt-content').value = '';
+    document.getElementById('prompt-desc').value = '';
+    document.getElementById('prompt-folder').value = '';
+    document.getElementById('prompt-tags').value = '';
+    document.getElementById('prompt-fav').checked = false;
+    state.selectedModel = 'GPT-4';
+  }
+  selectModel(state.selectedModel);
+  updateCharCount();
+  modal.classList.add('active');
+}
+
+function selectModel(name) {
+  state.selectedModel = name;
+  document.querySelectorAll('.model-option').forEach(el => {
+    el.classList.toggle('selected', el.dataset.model === name);
+  });
+}
+
+function updateCharCount() {
+  const content = document.getElementById('prompt-content').value;
+  const chars = content.length;
+  const tokens = countTokens(content);
+  const vars = extractVars(content);
+  document.getElementById('char-count').textContent = `${chars} ký tự • ~${tokens} tokens`;
+  document.getElementById('vars-detected').textContent = vars.length ? `🔧 ${vars.length} biến: ${vars.join(', ')}` : '';
+}
+
+function savePrompt() {
+  const title = document.getElementById('prompt-title').value.trim();
+  const content = document.getElementById('prompt-content').value.trim();
+  if (!title || !content) { toast('Vui lòng nhập tiêu đề và nội dung!', 'error'); return; }
+  
+  const data = {
+    title, content,
+    description: document.getElementById('prompt-desc').value.trim(),
+    model: state.selectedModel,
+    folderId: document.getElementById('prompt-folder').value || null,
+    tags: document.getElementById('prompt-tags').value.split(',').map(t=>t.trim()).filter(Boolean),
+    favorite: document.getElementById('prompt-fav').checked,
+    updatedAt: Date.now()
+  };
+  
+  // Auto-create tags mới
+  data.tags.forEach(tagName => {
+    if (!state.tags.find(t => t.name === tagName)) {
+      state.tags.push({ id: uid(), name: tagName });
+    }
+  });
+  
+  if (state.editingPromptId) {
+    const idx = state.prompts.findIndex(p => p.id === state.editingPromptId);
+    state.prompts[idx] = { ...state.prompts[idx], ...data };
+    toast('Đã cập nhật prompt!');
+  } else {
+    state.prompts.push({ id: uid(), ...data, createdAt: Date.now() });
+    toast('Đã thêm prompt mới!');
+  }
+  save();
+  closeModal('prompt-modal');
+  renderPrompts();
+}
+
+function editPrompt(id) { openPromptModal(id); }
+function deletePrompt(id) {
+  if (!confirm('Xóa prompt này?')) return;
+  state.prompts = state.prompts.filter(p => p.id !== id);
+  save(); renderPrompts();
+  toast('Đã xóa!');
+}
+function toggleFavorite(id) {
+  const p = state.prompts.find(x => x.id === id);
+  p.favorite = !p.favorite;
+  save(); renderPrompts();
+}
+
+// ============ COPY & DETAIL ============
+function copyPrompt(id, btn) {
+  const p = state.prompts.find(x => x.id === id);
+  if (!p) return;
+  navigator.clipboard.writeText(p.content).then(() => {
+    if (btn) {
+      btn.classList.add('copied');
+      btn.textContent = '✅';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = '📋';
+      }, 1500);
+    }
+    toast('Đã copy vào clipboard!');
+  });
+}
+
+function openDetail(id) {
+  const p = state.prompts.find(x => x.id === id);
+  if (!p) return;
+  state.currentDetailId = id;
+  state.filledValues = {};
+  
+  const folder = state.folders.find(f => f.id === p.folderId);
+  const model = MODELS.find(m => m.name === p.model) || MODELS[MODELS.length-1];
+  
+  document.getElementById('detail-title').innerHTML = `📝 ${escapeHtml(p.title)}`;
+  document.getElementById('detail-meta').innerHTML = `
+    <span class="model-badge ${model.class}">${model.icon} ${p.model}</span>
+    ${folder?`<span class="tag-chip">📁 ${escapeHtml(folder.name)}</span>`:''}
+    ${(p.tags||[]).map(t => `<span class="tag-chip">#${escapeHtml(t)}</span>`).join('')}
+  `;
+  document.getElementById('detail-content').innerHTML = highlightVars(p.content);
+  
+  // Variables fill
+  const vars = extractVars(p.content);
+  const varSection = document.getElementById('var-fill-section');
+  if (vars.length > 0) {
+    varSection.style.display = 'block';
+    document.getElementById('var-fill-list').innerHTML = vars.map(v => `
+      <div class="var-fill-row">
+        <label>{{${escapeHtml(v)}}}</label>
+        <input type="text" placeholder="Nhập giá trị..." oninput="state.filledValues['${escapeHtml(v)}']=this.value">
+      </div>
+    `).join('');
+  } else {
+    varSection.style.display = 'none';
+  }
+  
+  document.getElementById('detail-modal').classList.add('active');
+}
+
+function copyRawPrompt() {
+  const p = state.prompts.find(x => x.id === state.currentDetailId);
+  if (!p) return;
+  navigator.clipboard.writeText(p.content).then(() => toast('Đã copy raw prompt!'));
+}
+
+function copyFilledPrompt() {
+  const p = state.prompts.find(x => x.id === state.currentDetailId);
+  if (!p) return;
+  let filled = p.content;
+  Object.keys(state.filledValues).forEach(v => {
+    if (state.filledValues[v]) {
+      filled = filled.replace(new RegExp(`\\{\\{${v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\}\\}`, 'g'), state.filledValues[v]);
+    }
+  });
+  navigator.clipboard.writeText(filled).then(() => toast('Đã copy bản đã điền biến!'));
+}
+
+// ============ FOLDER CRUD ============
+function openFolderModal(id=null) {
+  state.editingFolderId = id;
+  const title = document.getElementById('folder-modal-title');
+  const colorPicker = document.getElementById('folder-colors');
+  colorPicker.innerHTML = FOLDER_COLORS.map(c => 
+    `<div class="color-option ${state.selectedFolderColor===c?'selected':''}" 
+          style="background:${c}" onclick="selectFolderColor('${c}')"></div>`
+  ).join('');
+  
+  if (id) {
+    const f = state.folders.find(x => x.id === id);
+    title.textContent = '✏️ Sửa Thư Mục';
+    document.getElementById('folder-name').value = f.name;
+    state.selectedFolderColor = f.color;
+    colorPicker.querySelectorAll('.color-option').forEach(el => {
+      el.classList.toggle('selected', el.style.backgroundColor === f.color || 
+        rgbToHex(el.style.backgroundColor) === f.color);
+    });
+  } else {
+    title.textContent = '📁 Thêm Thư Mục';
+    document.getElementById('folder-name').value = '';
+    state.selectedFolderColor = '#f97316';
+  }
+  document.getElementById('folder-modal').classList.add('active');
+}
+function rgbToHex(rgb) {
+  if (rgb.startsWith('#')) return rgb;
+  const m = rgb.match(/\d+/g);
+  if (!m) return rgb;
+  return '#' + m.slice(0,3).map(x => parseInt(x).toString(16).padStart(2,'0')).join('');
+}
+function selectFolderColor(c) {
+  state.selectedFolderColor = c;
+  document.querySelectorAll('#folder-colors .color-option').forEach(el => {
+    el.classList.toggle('selected', rgbToHex(el.style.backgroundColor) === c);
+  });
+}
+function saveFolder() {
+  const name = document.getElementById('folder-name').value.trim();
+  if (!name) { toast('Vui lòng nhập tên thư mục!', 'error'); return; }
+  if (state.editingFolderId) {
+    const f = state.folders.find(x => x.id === state.editingFolderId);
+    f.name = name; f.color = state.selectedFolderColor;
+    toast('Đã cập nhật thư mục!');
+  } else {
+    state.folders.push({ id: uid(), name, color: state.selectedFolderColor });
+    toast('Đã thêm thư mục!');
+  }
+  save(); closeModal('folder-modal'); renderPrompts();
+}
+function editFolder(id) { openFolderModal(id); }
+function deleteFolder(id) {
+  if (!confirm('Xóa thư mục này? (Các prompt trong thư mục sẽ không bị xóa)')) return;
+  state.folders = state.folders.filter(f => f.id !== id);
+  state.prompts.forEach(p => { if (p.folderId === id) p.folderId = null; });
+  if (state.currentView.type === 'folder' && state.currentView.id === id) setView('all');
+  save(); renderPrompts();
+  toast('Đã xóa thư mục!');
+}
+
+// ============ TAG CRUD ============
+function openTagModal() {
+  document.getElementById('tag-name').value = '';
+  document.getElementById('tag-modal').classList.add('active');
+}
+function saveTag() {
+  const name = document.getElementById('tag-name').value.trim().toLowerCase();
+  if (!name) { toast('Vui lòng nhập tên tag!', 'error'); return; }
+  if (state.tags.find(t => t.name === name)) { toast('Tag đã tồn tại!', 'error'); return; }
+  state.tags.push({ id: uid(), name });
+  save(); closeModal('tag-modal'); renderPrompts();
+  toast('Đã thêm tag!');
+}
+function deleteTag(id) {
+  const tag = state.tags.find(t => t.id === id);
+  if (!tag) return;
+  if (!confirm(`Xóa tag "${tag.name}"?`)) return;
+  state.tags = state.tags.filter(t => t.id !== id);
+  state.prompts.forEach(p => { p.tags = (p.tags||[]).filter(t => t !== tag.name); });
+  if (state.currentView.type === 'tag' && state.currentView.id === tag.name) setView('all');
+  save(); renderPrompts();
+  toast('Đã xóa tag!');
+}
+
+// ============ IMPORT/EXPORT ============
+function exportData() {
+  const data = {
+    version: '1.0',
+    app: 'PromptVault',
+    exportedAt: new Date().toISOString(),
+    prompts: state.prompts,
+    folders: state.folders,
+    tags: state.tags
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `promptvault-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Đã xuất file JSON!');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.prompts || !Array.isArray(data.prompts)) throw new Error('Format không hợp lệ');
+      
+      const choice = confirm(
+        `Tìm thấy ${data.prompts.length} prompts, ${(data.folders||[]).length} thư mục, ${(data.tags||[]).length} tags.\n\n` +
+        `OK = Gộp với dữ liệu hiện tại\nCancel = Xóa cũ và thay thế hoàn toàn`
+      );
+      
+      if (choice) {
+        const existingTitles = new Set(state.prompts.map(p => p.title));
+        let added = 0;
+        (data.prompts||[]).forEach(p => {
+          if (!existingTitles.has(p.title)) {
+            state.prompts.push({ ...p, id: p.id || uid() });
+            added++;
+          }
+        });
+        (data.folders||[]).forEach(f => {
+          if (!state.folders.find(x => x.name === f.name)) {
+            state.folders.push({ ...f, id: f.id || uid() });
+          }
+        });
+        (data.tags||[]).forEach(t => {
+          if (!state.tags.find(x => x.name === t.name)) {
+            state.tags.push({ ...t, id: t.id || uid() });
+          }
+        });
+        toast(`Đã gộp! Thêm ${added} prompts mới.`);
+      } else {
+        state.prompts = data.prompts || [];
+        state.folders = data.folders || [];
+        state.tags = data.tags || [];
+        toast('Đã thay thế toàn bộ dữ liệu!');
+      }
+      save(); setView('all'); renderPrompts();
+    } catch (err) {
+      toast('Lỗi đọc file: ' + err.message, 'error');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ============ THEME ============
+function toggleTheme() {
+  document.body.classList.toggle('light');
+  localStorage.setItem('promptvault_theme', document.body.classList.contains('light') ? 'light' : 'dark');
+}
+function loadTheme() {
+  if (localStorage.getItem('promptvault_theme') === 'light') document.body.classList.add('light');
+}
+
+// ============ MODAL UTIL ============
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); });
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+});
+
+// ============ INIT ============
+loadTheme();
+load();
+renderPrompts();
+</script>
+</body>
+</html>
